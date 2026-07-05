@@ -74,10 +74,11 @@ export const githubCallback = async(req: Request, res: Response) => {
 
     const token = generateToken(user._id.toString())
     res.cookie("token", token, {
-        httpOnly: false,
-        secure: false,
-        sameSite: "lax",
-        maxAge: 7 * 24* 60 * 60* 1000
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 7 * 24* 60 * 60* 1000,
+        path: "/"
     })
     return res.redirect("https://repo-pilot-five.vercel.app/dashboard")
 
