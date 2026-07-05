@@ -19,7 +19,7 @@ connectDB()
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-    origin: ["http://localhost:3000", "https://repo-pilot-five.vercel.app"],
+    origin: process.env.FRONTEND_URL,
     credentials: true
 }))
 
