@@ -9,8 +9,9 @@ router.get('/github', githubLogin)
 router.get('/github/callback', githubCallback)
 
 router.get('/me', protect, (req,res)=>{
-    res.json({
-        message: "protected route"
+    return res.json({
+        success: true,
+        user: req.user 
     })
 })
 

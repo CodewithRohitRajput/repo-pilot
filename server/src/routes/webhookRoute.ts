@@ -4,6 +4,6 @@ import { githubWebhook } from '../controllers/webhookController.js'
 
 const router = Router()
 
-router.post('/github', protect ,githubWebhook)
+router.post('/github' ,githubWebhook)
 
 export default router;

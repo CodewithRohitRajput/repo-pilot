@@ -79,11 +79,7 @@ export const githubCallback = async(req: Request, res: Response) => {
         sameSite: "lax",
         maxAge: 7 * 24* 60 * 60* 1000
     })
-    return res.json({
-        success: true,
-        message:"Login successfull",
-        user
-    })
+    return res.redirect("http://localhost:3000/dashboard")
 
 }catch(err){
     console.log(err)
