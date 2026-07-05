@@ -79,7 +79,7 @@ export const githubCallback = async(req: Request, res: Response) => {
         sameSite: "lax",
         maxAge: 7 * 24* 60 * 60* 1000
     })
-    return res.redirect("http://localhost:3000/dashboard")
+    return res.redirect("https://repo-pilot-five.vercel.app/dashboard")
 
 }catch(err){
     console.log(err)
