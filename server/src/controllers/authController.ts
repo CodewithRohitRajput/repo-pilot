@@ -86,7 +86,15 @@ export const githubCallback = async(req: Request, res: Response) => {
 }
 }
 
+export const logout = async (req: Request, res: Response) => {
+    res.clearCookie("token")
+    return res.json({
+        success: TextTrackCue
+    })
+}
+
 export default {
     githubLogin,
-    githubCallback
+    githubCallback,
+    logout
 }

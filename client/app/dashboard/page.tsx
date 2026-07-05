@@ -11,11 +11,25 @@ export default function Dashboard() {
     const [keyword, setKeyword] = useState("");
     const [label, setLabel] = useState("");
     const [slackEnabled, setSlackEnabled] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [connectingId, setConnectingId] = useState<any>(null);
+
+    const handleLogout = async () => {
+        try {
+            await fetch("http://localhost:8000/auth/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+        } catch (err) {
+            console.log(err);
+        } finally {
+            window.location.href = "/";
+        }
+    };
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                // User
                 const userRes = await fetch("http://localhost:8000/auth/me", {
                     credentials: "include",
                 });
@@ -28,38 +42,28 @@ export default function Dashboard() {
                 const userData = await userRes.json();
                 setUser(userData.user);
 
-                // GitHub Repositories
                 const repoRes = await fetch("http://localhost:8000/repo", {
                     credentials: "include",
                 });
-
                 const repoData = await repoRes.json();
                 setRepos(repoData);
 
-                // Connected Repositories
                 const connectedRes = await fetch(
                     "http://localhost:8000/repo/connected",
-                    {
-                        credentials: "include",
-                    }
+                    { credentials: "include" }
                 );
-
                 const connectedData = await connectedRes.json();
                 setConnectedRepos(connectedData);
 
-                // Events
                 const eventRes = await fetch("http://localhost:8000/events", {
                     credentials: "include",
                 });
-
                 const eventData = await eventRes.json();
                 setEvents(eventData);
 
-                // ----- NEW: Fetch rule -----
                 const ruleRes = await fetch("http://localhost:8000/rules", {
                     credentials: "include",
                 });
-
                 const ruleData = await ruleRes.json();
 
                 if (ruleData) {
@@ -67,7 +71,6 @@ export default function Dashboard() {
                     setLabel(ruleData.label || "");
                     setSlackEnabled(ruleData.slackEnabled ?? true);
                 }
-                // ----------------------------
             } catch (err) {
                 console.log(err);
                 window.location.href = "/";
@@ -80,58 +83,55 @@ export default function Dashboard() {
     }, []);
 
     const handleConnect = async (repo: any) => {
-        const res = await fetch("http://localhost:8000/repo/connect", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                githubRepoId: repo.id,
-                name: repo.name,
-                owner: repo.owner.login,
-                fullName: repo.full_name,
-            }),
-        });
+        setConnectingId(repo.id);
+        try {
+            const res = await fetch("http://localhost:8000/repo/connect", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    githubRepoId: repo.id,
+                    name: repo.name,
+                    owner: repo.owner.login,
+                    fullName: repo.full_name,
+                }),
+            });
 
-        if (res.ok) {
-            const connectedRes = await fetch(
-                "http://localhost:8000/repo/connected",
-                {
-                    credentials: "include",
-                }
-            );
-
-            const connectedData = await connectedRes.json();
-            setConnectedRepos(connectedData);
+            if (res.ok) {
+                const connectedRes = await fetch(
+                    "http://localhost:8000/repo/connected",
+                    { credentials: "include" }
+                );
+                const connectedData = await connectedRes.json();
+                setConnectedRepos(connectedData);
+            }
+        } finally {
+            setConnectingId(null);
         }
     };
 
-    // ----- NEW: saveRule function -----
     const saveRule = async () => {
-        const response = await fetch("http://localhost:8000/rules", {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                keyword,
-                label,
-                slackEnabled,
-            }),
-        });
-
-        const data = await response.json();
-        console.log(data);
-        alert("Rule Saved Successfully 🚀");
+        setSaving(true);
+        try {
+            const response = await fetch("http://localhost:8000/rules", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ keyword, label, slackEnabled }),
+            });
+            await response.json();
+        } finally {
+            setSaving(false);
+        }
     };
-    // -----------------------------------
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                Loading...
+            <div className="min-h-screen bg-[#EDEAE1] flex items-center justify-center">
+                <div className="flex items-center gap-3 font-mono text-sm uppercase tracking-widest text-[#1A1A1A]">
+                    <span className="w-2.5 h-2.5 bg-[#F5A623] border border-[#1A1A1A] animate-pulse" />
+                    Powering up
+                </div>
             </div>
         );
     }
@@ -139,123 +139,229 @@ export default function Dashboard() {
     const connectedIds = connectedRepos.map((repo: any) => repo.githubRepoId);
 
     return (
-        <main className="min-h-screen bg-gray-100 p-10 text-black">
-            <h1 className="text-4xl font-bold">RepoPilot 🚀</h1>
-
-            <div className="mt-8 flex items-center gap-5">
-                <img
-                    src={user?.avatar}
-                    alt="avatar"
-                    className="w-20 h-20 rounded-full"
-                />
-                <div>
-                    <h2 className="text-2xl font-bold">{user?.name}</h2>
-                    <p className="text-gray-600">@{user?.username}</p>
-                </div>
-            </div>
-
-            <div className="mt-12">
-                <h2 className="text-3xl font-bold mb-6">Your Repositories</h2>
-
-                {repos.map((repo: any) => (
-                    <div
-                        key={repo.id}
-                        className="bg-white rounded-lg shadow p-5 mb-4 flex justify-between items-center"
-                    >
-                        <div>
-                            <h3 className="font-bold text-lg">{repo.name}</h3>
-                            <p className="text-gray-500">{repo.full_name}</p>
+        <main className="min-h-screen bg-[#EDEAE1] text-[#1A1A1A]">
+            {/* ---------- Top bar ---------- */}
+            <header className="border-b-2 border-[#1A1A1A]">
+                <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 border-2 border-[#1A1A1A] bg-[#F5A623] flex items-center justify-center font-black text-sm">
+                            R
                         </div>
-                        {connectedIds.includes(repo.id) ? (
-                            <span className="text-green-600 font-semibold">
-                                ✅ Connected
-                            </span>
-                        ) : (
-                            <button
-                                onClick={() => handleConnect(repo)}
-                                className="bg-black text-white px-5 py-2 rounded-lg hover:bg-gray-800"
-                            >
-                                Connect
-                            </button>
+                        <span className="font-black tracking-tight text-lg uppercase">
+                            RepoPilot
+                        </span>
+                        <span className="hidden sm:inline-block text-[10px] font-mono uppercase tracking-widest text-[#6B6B63] border border-[#6B6B63] px-1.5 py-0.5">
+                            Control Panel
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2.5">
+                            <img
+                                src={user?.avatar}
+                                alt="avatar"
+                                className="w-9 h-9 border-2 border-[#1A1A1A]"
+                            />
+                            <div className="hidden sm:block leading-tight">
+                                <p className="text-sm font-bold">{user?.name}</p>
+                                <p className="text-xs font-mono text-[#6B6B63]">
+                                    @{user?.username}
+                                </p>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleLogout}
+                            className="text-xs font-mono uppercase tracking-widest border-2 border-[#1A1A1A] px-3 py-2 hover:bg-[#1A1A1A] hover:text-[#EDEAE1] transition-colors"
+                        >
+                            Power off
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div className="max-w-5xl mx-auto px-6 py-10 space-y-12">
+                {/* ---------- Repositories as ports ---------- */}
+                <section>
+                    <div className="flex items-baseline justify-between mb-4">
+                        <h2 className="font-black uppercase tracking-wide text-sm">
+                            Repository ports
+                        </h2>
+                        <span className="text-xs font-mono text-[#6B6B63]">
+                            {connectedIds.length} / {repos.length} wired
+                        </span>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                        {repos.map((repo: any) => {
+                            const isConnected = connectedIds.includes(repo.id);
+                            return (
+                                <div
+                                    key={repo.id}
+                                    className="border-2 border-[#1A1A1A] bg-[#FBFAF6] p-4 flex items-center justify-between"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <span
+                                            className={`shrink-0 w-2.5 h-2.5 rounded-full border border-[#1A1A1A] ${
+                                                isConnected
+                                                    ? "bg-[#2E8B57]"
+                                                    : "bg-[#D9D5C7]"
+                                            }`}
+                                        />
+                                        <div className="min-w-0">
+                                            <h3 className="font-bold text-sm truncate">
+                                                {repo.name}
+                                            </h3>
+                                            <p className="text-xs font-mono text-[#6B6B63] truncate">
+                                                {repo.full_name}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {isConnected ? (
+                                        <span className="text-xs font-mono uppercase tracking-wider text-[#2E8B57] shrink-0 ml-3">
+                                            Connected
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => handleConnect(repo)}
+                                            disabled={connectingId === repo.id}
+                                            className="shrink-0 ml-3 text-xs font-mono uppercase tracking-wider border-2 border-[#1A1A1A] bg-[#F5A623] px-3 py-1.5 hover:bg-[#1A1A1A] hover:text-[#F5A623] disabled:opacity-50 transition-colors"
+                                        >
+                                            {connectingId === repo.id ? "Connecting" : "Connect"}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+
+                        {repos.length === 0 && (
+                            <div className="sm:col-span-2 border-2 border-dashed border-[#1A1A1A] p-8 text-center text-sm font-mono text-[#6B6B63]">
+                                No repositories detected on this account.
+                            </div>
                         )}
                     </div>
-                ))}
-            </div>
+                </section>
 
-            {/* ----- NEW: Automation Rule UI ----- */}
-            <div className="mt-14">
-                <h2 className="text-3xl font-bold mb-6">Automation Rule</h2>
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="mb-5">
-                        <label className="block font-semibold mb-2">Keyword</label>
-                        <input
-                            value={keyword}
-                            onChange={(e) => setKeyword(e.target.value)}
-                            className="border w-full p-3 rounded"
-                            placeholder="bug"
-                        />
-                    </div>
-                    <div className="mb-5">
-                        <label className="block font-semibold mb-2">Label</label>
-                        <input
-                            value={label}
-                            onChange={(e) => setLabel(e.target.value)}
-                            className="border w-full p-3 rounded"
-                            placeholder="bug"
-                        />
-                    </div>
-                    <div className="flex items-center gap-3 mb-6">
-                        <input
-                            type="checkbox"
-                            checked={slackEnabled}
-                            onChange={(e) => setSlackEnabled(e.target.checked)}
-                        />
-                        <label>Send Slack Notification</label>
-                    </div>
-                    <button
-                        onClick={saveRule}
-                        className="bg-black text-white px-6 py-3 rounded-lg"
-                    >
-                        Save Rule
-                    </button>
-                </div>
-            </div>
-            {/* --------------------------------- */}
+                {/* ---------- Automation rule as breaker panel ---------- */}
+                <section>
+                    <h2 className="font-black uppercase tracking-wide text-sm mb-4">
+                        Automation breaker
+                    </h2>
 
-            <div className="mt-14">
-                <h2 className="text-3xl font-bold mb-6">Recent Activity</h2>
+                    <div className="border-2 border-[#1A1A1A] bg-[#FBFAF6] p-6">
+                        <div className="grid sm:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-[10px] font-mono uppercase tracking-widest text-[#6B6B63] mb-2">
+                                    Trigger — issue title contains
+                                </label>
+                                <input
+                                    value={keyword}
+                                    onChange={(e) => setKeyword(e.target.value)}
+                                    placeholder="bug"
+                                    className="w-full bg-[#EDEAE1] border-2 border-[#1A1A1A] px-3 py-2.5 font-mono text-sm focus:outline-none focus:bg-white"
+                                />
+                            </div>
 
-                {events.map((event: any) => (
-                    <div
-                        key={event._id}
-                        className="bg-white rounded-lg shadow p-5 mb-4"
-                    >
-                        <h3 className="font-bold text-lg">
-                            {event.action === "opened"
-                                ? "🟢 Issue Opened"
-                                : event.action === "labeled"
-                                ? "🏷️ Label Added"
-                                : event.action === "unlabeled"
-                                ? "❌ Label Removed"
-                                : event.action}
-                        </h3>
-                        <p className="mt-3">
-                            <strong>Issue :</strong> {event.issueTitle}
-                        </p>
-                        <p>
-                            <strong>Repository :</strong> {event.repository}
-                        </p>
-                        <p>
-                            <strong>User :</strong> {event.sender}
-                        </p>
-                        <p>
-                            <strong>Event :</strong> {event.eventType}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-2">
-                            {new Date(event.createdAt).toLocaleString()}
-                        </p>
+                            <div>
+                                <label className="block text-[10px] font-mono uppercase tracking-widest text-[#6B6B63] mb-2">
+                                    Action — apply label
+                                </label>
+                                <input
+                                    value={label}
+                                    onChange={(e) => setLabel(e.target.value)}
+                                    placeholder="bug"
+                                    className="w-full bg-[#EDEAE1] border-2 border-[#1A1A1A] px-3 py-2.5 font-mono text-sm focus:outline-none focus:bg-white"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Rocker switch */}
+                        <div className="mt-6 flex items-center justify-between border-2 border-[#1A1A1A] px-4 py-3">
+                            <div>
+                                <p className="text-sm font-bold">Slack notification</p>
+                                <p className="text-xs font-mono text-[#6B6B63]">
+                                    Ping #issues when the rule fires
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setSlackEnabled(!slackEnabled)}
+                                aria-pressed={slackEnabled}
+                                className={`relative w-14 h-8 border-2 border-[#1A1A1A] shrink-0 transition-colors ${
+                                    slackEnabled ? "bg-[#2E8B57]" : "bg-[#D9D5C7]"
+                                }`}
+                            >
+                                <span
+                                    className={`absolute top-0.5 w-6 h-6 bg-[#FBFAF6] border-2 border-[#1A1A1A] transition-all ${
+                                        slackEnabled ? "left-6" : "left-0.5"
+                                    }`}
+                                />
+                            </button>
+                        </div>
+
+                        <div className="mt-6 pt-5 border-t-2 border-dashed border-[#1A1A1A] flex justify-end">
+                            <button
+                                onClick={saveRule}
+                                disabled={saving}
+                                className="text-sm font-mono uppercase tracking-widest border-2 border-[#1A1A1A] bg-[#F5A623] px-5 py-2.5 hover:bg-[#1A1A1A] hover:text-[#F5A623] disabled:opacity-50 transition-colors"
+                            >
+                                {saving ? "Saving…" : "Engage rule"}
+                            </button>
+                        </div>
                     </div>
-                ))}
+                </section>
+
+                {/* ---------- Activity log ---------- */}
+                <section>
+                    <h2 className="font-black uppercase tracking-wide text-sm mb-4">
+                        Activity log
+                    </h2>
+
+                    <div className="border-2 border-[#1A1A1A] bg-[#FBFAF6] divide-y-2 divide-[#1A1A1A]">
+                        {events.map((event: any) => {
+                            const meta =
+                                event.action === "opened"
+                                    ? { dot: "#2E8B57", label: "Issue opened" }
+                                    : event.action === "labeled"
+                                    ? { dot: "#F5A623", label: "Label added" }
+                                    : event.action === "unlabeled"
+                                    ? { dot: "#D64545", label: "Label removed" }
+                                    : { dot: "#6B6B63", label: event.action };
+
+                            return (
+                                <div key={event._id} className="px-5 py-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="flex items-center gap-2 text-sm font-bold">
+                                            <span
+                                                className="w-2 h-2 border border-[#1A1A1A]"
+                                                style={{ backgroundColor: meta.dot }}
+                                            />
+                                            {meta.label}
+                                        </span>
+                                        <span className="text-xs font-mono text-[#6B6B63]">
+                                            {new Date(event.createdAt).toLocaleString()}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-sm mt-2.5">{event.issueTitle}</p>
+
+                                    <div className="flex gap-4 mt-2 text-xs font-mono text-[#6B6B63]">
+                                        <span>{event.repository}</span>
+                                        <span>@{event.sender}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {events.length === 0 && (
+                            <div className="px-5 py-8 text-center text-sm font-mono text-[#6B6B63]">
+                                No activity logged yet.
+                            </div>
+                        )}
+                    </div>
+                </section>
             </div>
         </main>
     );
