@@ -16,7 +16,7 @@ export default function Dashboard() {
 
     const handleLogout = async () => {
         try {
-            await fetch("http://localhost:8000/auth/logout", {
+            await fetch("https://repo-pilot-sps0.onrender.com/auth/logout", {
                 method: "POST",
                 credentials: "include",
             });
@@ -30,7 +30,7 @@ export default function Dashboard() {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const userRes = await fetch("http://localhost:8000/auth/me", {
+                const userRes = await fetch("https://repo-pilot-sps0.onrender.com/auth/me", {
                     credentials: "include",
                 });
 
@@ -42,26 +42,26 @@ export default function Dashboard() {
                 const userData = await userRes.json();
                 setUser(userData.user);
 
-                const repoRes = await fetch("http://localhost:8000/repo", {
+                const repoRes = await fetch("https://repo-pilot-sps0.onrender.com/repo", {
                     credentials: "include",
                 });
                 const repoData = await repoRes.json();
                 setRepos(repoData);
 
                 const connectedRes = await fetch(
-                    "http://localhost:8000/repo/connected",
+                    "https://repo-pilot-sps0.onrender.com/repo/connected",
                     { credentials: "include" }
                 );
                 const connectedData = await connectedRes.json();
                 setConnectedRepos(connectedData);
 
-                const eventRes = await fetch("http://localhost:8000/events", {
+                const eventRes = await fetch("https://repo-pilot-sps0.onrender.com/events", {
                     credentials: "include",
                 });
                 const eventData = await eventRes.json();
                 setEvents(eventData);
 
-                const ruleRes = await fetch("http://localhost:8000/rules", {
+                const ruleRes = await fetch("https://repo-pilot-sps0.onrender.com/rules", {
                     credentials: "include",
                 });
                 const ruleData = await ruleRes.json();
@@ -85,7 +85,7 @@ export default function Dashboard() {
     const handleConnect = async (repo: any) => {
         setConnectingId(repo.id);
         try {
-            const res = await fetch("http://localhost:8000/repo/connect", {
+            const res = await fetch("https://repo-pilot-sps0.onrender.com/repo/connect", {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -99,7 +99,7 @@ export default function Dashboard() {
 
             if (res.ok) {
                 const connectedRes = await fetch(
-                    "http://localhost:8000/repo/connected",
+                    "https://repo-pilot-sps0.onrender.com/repo/connected",
                     { credentials: "include" }
                 );
                 const connectedData = await connectedRes.json();
@@ -113,7 +113,7 @@ export default function Dashboard() {
     const saveRule = async () => {
         setSaving(true);
         try {
-            const response = await fetch("http://localhost:8000/rules", {
+            const response = await fetch("https://repo-pilot-sps0.onrender.com/rules", {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },

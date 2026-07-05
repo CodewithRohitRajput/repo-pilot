@@ -3,7 +3,7 @@
 export default function Home() {
 
     const handleLogin = () => {
-        window.location.href = "http://localhost:8000/auth/github";
+        window.location.href = "https://repo-pilot-sps0.onrender.com/auth/github";
     };
 
     return (
