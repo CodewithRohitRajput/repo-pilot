@@ -13,28 +13,61 @@ export const githubWebhook = async (req: Request, res: Response) => {
     // console.log("delivery ID", deliveryId)
     const alreadyProcessed = await Event.findOne({
         deliveryId
-    })
+    })  
 
+    
     if(alreadyProcessed){
         return res.sendStatus(200)
     }
-
+    const event = req.headers["x-github-event"] as string;
+    
           if(req.body.action !== "opened"){
         return res.sendStatus(200)
     }
 
+    if (event === "pull_request") {
 
-    const newEvent = await Event.create({
-        eventType: req.headers['x-github-event'],
+        const newEvent = await Event.create({
+            eventType: req.headers['x-github-event'],
+            action: req.body.action,
+            repository: req.body.repository.full_name,
+            issueTitle: req.body.issue.title,
+            sender: req.body.sender.login,
+            payload: req.body,
+            deliveryId
+        })
+        
+    }
+    if (event === "pull_request") {
+
+    await Event.create({
+        eventType: event,
         action: req.body.action,
         repository: req.body.repository.full_name,
-        issueTitle: req.body.issue.title,
+        issueTitle: req.body.pull_request.title,
         sender: req.body.sender.login,
         payload: req.body,
         deliveryId
-    })
+    });
 
+    return res.sendStatus(200);
+}
   
+
+if (event === "push") {
+
+    await Event.create({
+        eventType: event,
+        action: "push",
+        repository: req.body.repository.full_name,
+        issueTitle: req.body.head_commit?.message || "Push Event",
+        sender: req.body.pusher.name,
+        payload: req.body,
+        deliveryId
+    });
+
+    return res.sendStatus(200);
+}
 
     const repo = await Repository.findOne({
         fullName: req.body.repository.full_name
