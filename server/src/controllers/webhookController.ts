@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import Event from "../models/event.js";
 import User from "../models/user.js";
 import Repository from "../models/repository.js";
